@@ -1,6 +1,7 @@
 package main
 
 import (
+	"czlingo/my-docker/cgroups/subsystems"
 	"czlingo/my-docker/container"
 	"errors"
 
@@ -17,14 +18,28 @@ var runCommand = cli.Command{
 			Name:  "it",
 			Usage: "enable tty",
 		},
+		cli.StringFlag{
+			Name:  "m",
+			Usage: "memory limit",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
 			return errors.New("Missing container command")
 		}
-		cmd := context.Args().Get(0)
+
+		var cmdArray []string
+		for _, arg := range context.Args() {
+			cmdArray = append(cmdArray, arg)
+		}
 		tty := context.Bool("it")
-		Run(tty, cmd)
+		resConf := &subsystems.ResourceConfig{
+			MemoryLimit: context.String("m"),
+			// CpuSet:      context.String("cpuset"),
+			// CpuShare:    context.String("cpushare"),
+		}
+
+		Run(tty, cmdArray, resConf)
 		return nil
 	},
 }
@@ -34,9 +49,7 @@ var initCommand = cli.Command{
 	Usage: "Init container process run user's process in container. Do not call it outside",
 	Action: func(context *cli.Context) error {
 		log.Infof("init come on")
-		cmd := context.Args().Get(0)
-		log.Infof("command %s", cmd)
-		err := container.RunContainerInitProcess(cmd, nil)
+		err := container.RunContainerInitProcess()
 		return err
 	},
 }

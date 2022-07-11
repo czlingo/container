@@ -27,8 +27,7 @@ func NewParentProcess(tty bool) (*exec.Cmd, *os.File) {
 	}
 
 	cmd.ExtraFiles = []*os.File{readPipe}
-	// TODO: 指定容器目录
-	cmd.Dir = "./busybox"
+	cmd.Dir = NewWorkspace()
 	return cmd, writePipe
 }
 

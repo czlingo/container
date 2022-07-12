@@ -2,6 +2,7 @@ package main
 
 import (
 	"czlingo/my-docker/cgroups/subsystems"
+	"czlingo/my-docker/command"
 	"czlingo/my-docker/container"
 	"errors"
 
@@ -39,7 +40,7 @@ var runCommand = cli.Command{
 			// CpuShare:    context.String("cpushare"),
 		}
 
-		Run(tty, cmdArray, resConf)
+		command.Run(tty, cmdArray, resConf)
 		return nil
 	},
 }

@@ -11,15 +11,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, comArray []string, res *subsystems.ResourceConfig) {
+func Run(tty bool, comArray []string, volumes []string, res *subsystems.ResourceConfig) {
 	parent, writePipe := container.NewParentProcess(tty)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
 	}
 	// cd /
-	parent.Dir = fs.NewWorkspace()
-	defer fs.DestroyWorkspace()
+	parent.Dir = fs.NewWorkspace(volumes)
+	defer fs.DestroyWorkspace(volumes)
 
 	if err := parent.Start(); err != nil {
 		logrus.Error(err)

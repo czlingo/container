@@ -23,6 +23,10 @@ var runCommand = cli.Command{
 			Name:  "m",
 			Usage: "memory limit",
 		},
+		cli.StringSliceFlag{
+			Name:  "v",
+			Usage: "volume",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -39,8 +43,9 @@ var runCommand = cli.Command{
 			// CpuSet:      context.String("cpuset"),
 			// CpuShare:    context.String("cpushare"),
 		}
+		volumes := context.StringSlice("v")
 
-		command.Run(tty, cmdArray, resConf)
+		command.Run(tty, cmdArray, volumes, resConf)
 		return nil
 	},
 }

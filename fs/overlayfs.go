@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/sirupsen/logrus"
 )
@@ -12,11 +13,13 @@ const (
 	defaultRootPath = "./root"
 )
 
-func NewWorkspace() string {
+func NewWorkspace(volumes []string) string {
 	lowerDir := createLowerDir()
 	diffDir := createDiffDir()
 	workDir := createWorkDir()
-	return mountMergeDir(lowerDir, diffDir, workDir)
+	mergedDir := mountMergeDir(lowerDir, diffDir, workDir)
+	mountVolumes(mergedDir, volumes)
+	return mergedDir
 }
 
 // TODO: 暂未使用, 根据镜像创建lower dir
@@ -45,6 +48,23 @@ func mountMergeDir(lowPath, diffPath, workPath string) string {
 	return mountPath
 }
 
+func mountVolumes(merged string, volumes []string) {
+	for _, volume := range volumes {
+		volMapping := strings.Split(volume, ":")
+		if len(volMapping) == 2 && volMapping[0] != "" && volMapping[1] != "" {
+			hostPath := volMapping[0]
+			mountPoint := filepath.Join(merged, volMapping[1])
+			if err := os.Mkdir(mountPoint, 0777); err != nil {
+				logrus.Errorf("Fail to create volume mount point %s, error %v", mountPoint, err)
+			}
+			cmd := exec.Command("mount", "--bind", hostPath, mountPoint)
+			if err := cmd.Run(); err != nil {
+				logrus.Errorf("Fail to mount volume %s. error %v", volume, err)
+			}
+		}
+	}
+}
+
 func mkdir(path, dir string) string {
 	fullPath := filepath.Join(path, dir)
 	if err := os.Mkdir(fullPath, 0777); err != nil {
@@ -53,10 +73,23 @@ func mkdir(path, dir string) string {
 	return fullPath
 }
 
-func DestroyWorkspace() {
+func DestroyWorkspace(volumes []string) {
+	umountVolumes(volumes)
 	umountMerged()
 	deleteWorkDir()
 	deleteDiffDir()
+}
+
+func umountVolumes(volumes []string) {
+	for _, volume := range volumes {
+		volMapping := strings.Split(volume, ":")
+		// TODO:
+		mountPoint := filepath.Join(defaultRootPath, "merged", volMapping[1])
+		cmd := exec.Command("umount", mountPoint)
+		if err := cmd.Run(); err != nil {
+			logrus.Errorf("Fail to umount volume %s, error %v", volume, err)
+		}
+	}
 }
 
 func umountMerged() {

@@ -22,9 +22,16 @@ func NewWorkspace(volumes []string) string {
 	return mergedDir
 }
 
-// TODO: 暂未使用, 根据镜像创建lower dir
 func createLowerDir() string {
-	return filepath.Join(defaultRootPath, "busybox")
+	lowerDir := filepath.Join(defaultRootPath, "busybox")
+	if err := os.Mkdir(lowerDir, 0777); err != nil {
+		logrus.Errorf("Fail to create lower dir %s, error %v", lowerDir, err)
+	}
+	cmd := exec.Command("tar", "-xvf", lowerDir+".tar", "-C", lowerDir)
+	if err := cmd.Run(); err != nil {
+		logrus.Errorf("Fail to tar busybox")
+	}
+	return lowerDir
 }
 
 func createDiffDir() string {
@@ -78,6 +85,7 @@ func DestroyWorkspace(volumes []string) {
 	umountMerged()
 	deleteWorkDir()
 	deleteDiffDir()
+	deleteLowerDir()
 }
 
 func umountVolumes(volumes []string) {
@@ -115,6 +123,13 @@ func deleteDiffDir() {
 	diffPath := filepath.Join(defaultRootPath, "diff")
 	if err := os.RemoveAll(diffPath); err != nil {
 		logrus.Errorf("Fail to delete dir %s. error %v", diffPath, err)
+	}
+}
+
+func deleteLowerDir() {
+	lowerPath := filepath.Join(defaultRootPath, "busybox")
+	if err := os.RemoveAll(lowerPath); err != nil {
+		logrus.Errorf("Fail to delete dir %s. error %v", lowerPath, err)
 	}
 }
 

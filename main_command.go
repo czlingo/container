@@ -27,6 +27,14 @@ var runCommand = cli.Command{
 			Name:  "v",
 			Usage: "volume",
 		},
+		cli.BoolFlag{
+			Name:  "d",
+			Usage: "detach container",
+		},
+		cli.StringFlag{
+			Name:  "name",
+			Usage: "container name",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -37,15 +45,24 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+
 		tty := context.Bool("it")
+		detach := context.Bool("d")
+		volumes := context.StringSlice("v")
+		containerName := context.String("name")
+		memory := context.String("m")
+
+		if tty && detach {
+			return errors.New("it and d paramter can not both provided")
+		}
+
 		resConf := &subsystems.ResourceConfig{
-			MemoryLimit: context.String("m"),
+			MemoryLimit: memory,
 			// CpuSet:      context.String("cpuset"),
 			// CpuShare:    context.String("cpushare"),
 		}
-		volumes := context.StringSlice("v")
 
-		command.Run(tty, cmdArray, volumes, resConf)
+		command.Run(tty, cmdArray, volumes, resConf, containerName)
 		return nil
 	},
 }

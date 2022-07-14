@@ -1,11 +1,12 @@
 package container
 
 const (
-	RUNNING             = "running"
-	STOP                = "stopped"
-	Exit                = "exited"
-	DefaultInfoLocation = "/var/run/mycontainer/%s/"
-	ConfigName          = "config.json"
+	RUNNING                    = "running"
+	STOP                       = "stopped"
+	Exit                       = "exited"
+	DefaultInfoLocation        = "/var/run/mycontainer/%s/"
+	ConfigName                 = "config.json"
+	ContainerLogFile    string = "container.log"
 )
 
 type ContainerInfo struct {

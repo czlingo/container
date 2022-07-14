@@ -1,7 +1,6 @@
 package command
 
 import (
-	"czlingo/my-docker/cgroups"
 	"czlingo/my-docker/cgroups/subsystems"
 	"czlingo/my-docker/container"
 	"czlingo/my-docker/fs"
@@ -17,7 +16,7 @@ import (
 )
 
 func Run(tty bool, comArray []string, volumes []string, res *subsystems.ResourceConfig, containerName string) {
-	parent, writePipe := container.NewParentProcess(tty)
+	parent, writePipe := container.NewParentProcess(tty, containerName)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
@@ -25,7 +24,7 @@ func Run(tty bool, comArray []string, volumes []string, res *subsystems.Resource
 	// cd /
 	parent.Dir = fs.NewWorkspace(volumes)
 	// FIXME: in -d, not destroy workspace & cgroup
-	defer fs.DestroyWorkspace(volumes)
+	// defer fs.DestroyWorkspace(volumes)
 
 	if err := parent.Start(); err != nil {
 		logrus.Error(err)
@@ -38,10 +37,10 @@ func Run(tty bool, comArray []string, volumes []string, res *subsystems.Resource
 	}
 
 	// use mydocker-cgroup as cgroup name
-	cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
-	defer cgroupManager.Destroy()
-	cgroupManager.Set(res)
-	cgroupManager.Apply(parent.Process.Pid)
+	// cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
+	// defer cgroupManager.Destroy()
+	// cgroupManager.Set(res)
+	// cgroupManager.Apply(parent.Process.Pid)
 
 	sendInitCommand(comArray, writePipe)
 	if tty {

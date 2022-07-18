@@ -1,6 +1,7 @@
 package command
 
 import (
+	"czlingo/my-docker/cgroups"
 	"czlingo/my-docker/cgroups/subsystems"
 	"czlingo/my-docker/container"
 	"czlingo/my-docker/fs"
@@ -34,15 +35,16 @@ func Run(tty bool, comArray []string, volumes []string, res *subsystems.Resource
 		return
 	}
 
-	// defer cgroupManager.Destroy()
-	// cgroupManager.Set(res)
-	// cgroupManager.Apply(parent.Process.Pid)
+	cgroupManager := cgroups.NewCgroupManager(containerName)
+	cgroupManager.Set(res)
+	cgroupManager.Apply(parent.Process.Pid)
 
 	sendInitCommand(comArray, writePipe)
 	if tty {
 		parent.Wait()
 		deleteContainerInfo(containerName)
 		fs.DestroyWorkspace(volumes, containerName)
+		cgroupManager.Destroy()
 	}
 }
 

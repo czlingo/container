@@ -1,6 +1,7 @@
 package command
 
 import (
+	"czlingo/my-docker/cgroups"
 	"czlingo/my-docker/container"
 	"czlingo/my-docker/fs"
 
@@ -18,4 +19,8 @@ func RemoveContainer(containerName string) {
 		return
 	}
 	fs.DestroyWorkspace(containerInfo.Volumes, containerName)
+	cm := cgroups.NewCgroupManager(containerName)
+	if err := cm.Destroy(); err != nil {
+		log.Errorf("Fail to destory cgroups of %s", containerName)
+	}
 }

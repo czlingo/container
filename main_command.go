@@ -47,6 +47,8 @@ var runCommand = cli.Command{
 		for _, arg := range context.Args() {
 			cmdArray = append(cmdArray, arg)
 		}
+		imageName := cmdArray[0]
+		cmdArray = cmdArray[1:]
 
 		tty := context.Bool("it")
 		detach := context.Bool("d")
@@ -64,7 +66,7 @@ var runCommand = cli.Command{
 			// CpuShare:    context.String("cpushare"),
 		}
 
-		command.Run(tty, cmdArray, volumes, resConf, containerName)
+		command.Run(tty, cmdArray, volumes, resConf, containerName, imageName)
 		return nil
 	},
 }
@@ -73,11 +75,12 @@ var commitCommand = cli.Command{
 	Name:  "commit",
 	Usage: "commit a container into image",
 	Action: func(context *cli.Context) error {
-		if len(context.Args()) < 1 {
+		if len(context.Args()) < 2 {
 			return errors.New("Missing container name")
 		}
-		imageName := context.Args().Get(0)
-		command.Commit(imageName)
+		containerName := context.Args().Get(0)
+		imageName := context.Args().Get(1)
+		command.Commit(containerName, imageName)
 		return nil
 	},
 }

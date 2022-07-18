@@ -2,6 +2,7 @@ package command
 
 import (
 	"czlingo/my-docker/container"
+	"czlingo/my-docker/fs"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -10,7 +11,7 @@ import (
 )
 
 func LogContainer(containerName string) {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	logFileLocation := dirURL + container.ContainerLogFile
 	file, err := os.Open(logFileLocation)
 	if err != nil {

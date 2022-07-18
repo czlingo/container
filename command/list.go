@@ -2,6 +2,7 @@ package command
 
 import (
 	"czlingo/my-docker/container"
+	"czlingo/my-docker/fs"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,7 +13,7 @@ import (
 )
 
 func ListContainers() {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, "")
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, "")
 	dirURL = dirURL[:len(dirURL)-1]
 	files, err := ioutil.ReadDir(dirURL)
 	if err != nil {
@@ -49,7 +50,7 @@ func ListContainers() {
 
 func getContainerInfo(file os.FileInfo) (*container.ContainerInfo, error) {
 	containerName := file.Name()
-	configFileDir := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	configFileDir := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	configFileDir = configFileDir + container.ConfigName
 	content, err := ioutil.ReadFile(configFileDir)
 	if err != nil {

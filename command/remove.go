@@ -2,8 +2,7 @@ package command
 
 import (
 	"czlingo/my-docker/container"
-	"fmt"
-	"os"
+	"czlingo/my-docker/fs"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -18,10 +17,5 @@ func RemoveContainer(containerName string) {
 		log.Errorf("Couldn't remove running container")
 		return
 	}
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
-	if err := os.RemoveAll(dirURL); err != nil {
-		log.Errorf("Remove file %s error %v", dirURL, err)
-		return
-	}
-	//  TODO: remove rootfs
+	fs.DestroyWorkspace(containerInfo.Volumes, containerName)
 }

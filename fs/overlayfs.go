@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -10,40 +11,58 @@ import (
 )
 
 const (
-	defaultRootPath = "./root"
+	DefaultImageRepo    = "./mycontainer/image"
+	DefaultRootPath     = "./mycontainer/container"
+	DefaultLowerPath    = "./mycontainer/container/%s/lower"
+	DefaultMergedPath   = "./mycontainer/container/%s/merged"
+	DefaultDiffPath     = "./mycontainer/container/%s/diff"
+	DefaultWorkPath     = "./mycontainer/container/%s/work"
+	DefaultInfoLocation = "./mycontainer/container/%s/"
 )
 
-func NewWorkspace(volumes []string) string {
-	lowerDir := createLowerDir()
-	diffDir := createDiffDir()
-	workDir := createWorkDir()
-	mergedDir := mountMergeDir(lowerDir, diffDir, workDir)
+func NewWorkspace(volumes []string, containerName, imageName string) string {
+	lowerDir := createLowerDir(containerName, imageName)
+	diffDir := createDiffDir(containerName)
+	workDir := createWorkDir(containerName)
+	mergedDir := mountMergeDir(containerName, lowerDir, diffDir, workDir)
 	mountVolumes(mergedDir, volumes)
 	return mergedDir
 }
 
-func createLowerDir() string {
-	lowerDir := filepath.Join(defaultRootPath, "busybox")
+func createLowerDir(containerName, imageName string) string {
+	lowerDir := fmt.Sprintf(DefaultLowerPath, containerName)
 	if err := os.Mkdir(lowerDir, 0777); err != nil {
 		logrus.Errorf("Fail to create lower dir %s, error %v", lowerDir, err)
 	}
-	cmd := exec.Command("tar", "-xvf", lowerDir+".tar", "-C", lowerDir)
+	imageURI := filepath.Join(DefaultImageRepo, imageName)
+	cmd := exec.Command("tar", "-xvf", imageURI+".tar", "-C", lowerDir)
 	if err := cmd.Run(); err != nil {
 		logrus.Errorf("Fail to tar busybox")
 	}
 	return lowerDir
 }
 
-func createDiffDir() string {
-	return mkdir(defaultRootPath, "diff")
+func createDiffDir(containerName string) string {
+	diffPath := fmt.Sprintf(DefaultDiffPath, containerName)
+	if err := os.MkdirAll(diffPath, 0777); err != nil {
+		logrus.Errorf("Fail to create diff dir. error %v", err)
+	}
+	return diffPath
 }
 
-func createWorkDir() string {
-	return mkdir(defaultRootPath, "work")
+func createWorkDir(containerName string) string {
+	workPath := fmt.Sprintf(DefaultWorkPath, containerName)
+	if err := os.MkdirAll(workPath, 0777); err != nil {
+		logrus.Errorf("Fail to create diff dir. error %v", err)
+	}
+	return workPath
 }
 
-func mountMergeDir(lowPath, diffPath, workPath string) string {
-	mountPath := mkdir(defaultRootPath, "merged")
+func mountMergeDir(containerName, lowPath, diffPath, workPath string) string {
+	mountPath := fmt.Sprintf(DefaultMergedPath, containerName)
+	if err := os.MkdirAll(mountPath, 0777); err != nil {
+		logrus.Errorf("Fail to create mount dir. error %v", err)
+	}
 
 	option := "lowerdir=" + lowPath + ",upperdir=" + diffPath + ",workdir=" + workPath
 	cmd := exec.Command("mount", "-t", "overlay", "-o", option, "overlay", mountPath)
@@ -72,27 +91,17 @@ func mountVolumes(merged string, volumes []string) {
 	}
 }
 
-func mkdir(path, dir string) string {
-	fullPath := filepath.Join(path, dir)
-	if err := os.Mkdir(fullPath, 0777); err != nil {
-		logrus.Errorf("Fail to creat dir %s error. %v", fullPath, err)
-	}
-	return fullPath
+func DestroyWorkspace(volumes []string, containerName string) {
+	umountVolumes(containerName, volumes)
+	umountMerged(containerName)
+	deleteWorkspace(containerName)
 }
 
-func DestroyWorkspace(volumes []string) {
-	umountVolumes(volumes)
-	umountMerged()
-	deleteWorkDir()
-	deleteDiffDir()
-	deleteLowerDir()
-}
-
-func umountVolumes(volumes []string) {
+func umountVolumes(containerName string, volumes []string) {
+	mergedPath := fmt.Sprintf(DefaultMergedPath, containerName)
 	for _, volume := range volumes {
 		volMapping := strings.Split(volume, ":")
-		// TODO:
-		mountPoint := filepath.Join(defaultRootPath, "merged", volMapping[1])
+		mountPoint := filepath.Join(mergedPath, volMapping[1])
 		cmd := exec.Command("umount", mountPoint)
 		if err := cmd.Run(); err != nil {
 			logrus.Errorf("Fail to umount volume %s, error %v", volume, err)
@@ -100,8 +109,8 @@ func umountVolumes(volumes []string) {
 	}
 }
 
-func umountMerged() {
-	mergedPath := filepath.Join(defaultRootPath, "merged")
+func umountMerged(containerName string) {
+	mergedPath := fmt.Sprintf(DefaultMergedPath, containerName)
 
 	cmd := exec.Command("umount", mergedPath)
 	if err := cmd.Run(); err != nil {
@@ -112,34 +121,20 @@ func umountMerged() {
 	}
 }
 
-func deleteWorkDir() {
-	workPath := filepath.Join(defaultRootPath, "work")
+func deleteWorkspace(containerName string) {
+	workPath := filepath.Join(DefaultRootPath, containerName)
 	if err := os.RemoveAll(workPath); err != nil {
 		logrus.Errorf("Fail to delete dir %s. error %v", workPath, err)
 	}
 }
 
-func deleteDiffDir() {
-	diffPath := filepath.Join(defaultRootPath, "diff")
-	if err := os.RemoveAll(diffPath); err != nil {
-		logrus.Errorf("Fail to delete dir %s. error %v", diffPath, err)
-	}
-}
-
-func deleteLowerDir() {
-	lowerPath := filepath.Join(defaultRootPath, "busybox")
-	if err := os.RemoveAll(lowerPath); err != nil {
-		logrus.Errorf("Fail to delete dir %s. error %v", lowerPath, err)
-	}
-}
-
-func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
-}
+// func pathExists(path string) (bool, error) {
+// 	_, err := os.Stat(path)
+// 	if err == nil {
+// 		return true, nil
+// 	}
+// 	if os.IsNotExist(err) {
+// 		return false, nil
+// 	}
+// 	return false, err
+// }

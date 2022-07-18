@@ -1,6 +1,7 @@
 package container
 
 import (
+	"czlingo/my-docker/fs"
 	"fmt"
 	"os"
 	"os/exec"
@@ -26,7 +27,7 @@ func NewParentProcess(tty bool, containerName string) (*exec.Cmd, *os.File) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 	} else {
-		dirURL := fmt.Sprintf(DefaultInfoLocation, containerName)
+		dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 		if err := os.MkdirAll(dirURL, 0622); err != nil {
 			log.Errorf("NewParentProcess mkdir %s error %v", dirURL, err)
 			return nil, nil

@@ -2,6 +2,7 @@ package command
 
 import (
 	"czlingo/my-docker/container"
+	"czlingo/my-docker/fs"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -38,7 +39,7 @@ func StopContainer(containerName string) {
 		log.Errorf("Json marshal %s error %v", containerName, err)
 		return
 	}
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	configFilePath := dirURL + container.ConfigName
 	if err := ioutil.WriteFile(configFilePath, newContentBytes, 0622); err != nil {
 		log.Errorf("Write file %s error", configFilePath, err)
@@ -46,7 +47,7 @@ func StopContainer(containerName string) {
 }
 
 func getContainerInfoByName(containerName string) (*container.ContainerInfo, error) {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	configFilePath := dirURL + container.ConfigName
 	contentBytes, err := ioutil.ReadFile(configFilePath)
 	if err != nil {

@@ -2,6 +2,7 @@ package command
 
 import (
 	"czlingo/my-docker/container"
+	"czlingo/my-docker/fs"
 	_ "czlingo/my-docker/nsenter"
 	"encoding/json"
 	"fmt"
@@ -40,7 +41,7 @@ func ExecContainer(containerName string, comArray []string) {
 }
 
 func getContainerPidByName(containerName string) (string, error) {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	configFilePath := dirURL + container.ConfigName
 	contentBytes, err := ioutil.ReadFile(configFilePath)
 	if err != nil {

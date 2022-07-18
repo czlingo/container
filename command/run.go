@@ -15,29 +15,25 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, comArray []string, volumes []string, res *subsystems.ResourceConfig, containerName string) {
+func Run(tty bool, comArray []string, volumes []string, res *subsystems.ResourceConfig, containerName, imageName string) {
 	parent, writePipe := container.NewParentProcess(tty, containerName)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
 	}
 	// cd /
-	parent.Dir = fs.NewWorkspace(volumes)
-	// FIXME: in -d, not destroy workspace & cgroup
-	// defer fs.DestroyWorkspace(volumes)
+	parent.Dir = fs.NewWorkspace(volumes, containerName, imageName)
 
 	if err := parent.Start(); err != nil {
 		logrus.Error(err)
 	}
 
-	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, volumes, containerName)
 	if err != nil {
 		logrus.Errorf("Record container info error %v", err)
 		return
 	}
 
-	// use mydocker-cgroup as cgroup name
-	// cgroupManager := cgroups.NewCgroupManager("mydocker-cgroup")
 	// defer cgroupManager.Destroy()
 	// cgroupManager.Set(res)
 	// cgroupManager.Apply(parent.Process.Pid)
@@ -46,6 +42,7 @@ func Run(tty bool, comArray []string, volumes []string, res *subsystems.Resource
 	if tty {
 		parent.Wait()
 		deleteContainerInfo(containerName)
+		fs.DestroyWorkspace(volumes, containerName)
 	}
 }
 
@@ -56,7 +53,7 @@ func sendInitCommand(comArray []string, writePipe *os.File) {
 	writePipe.Close()
 }
 
-func recordContainerInfo(containerPID int, commandArray []string, containerName string) (string, error) {
+func recordContainerInfo(containerPID int, commandArray, volumes []string, containerName string) (string, error) {
 	id := randStringBytes(10)
 
 	createTime := time.Now().Format("2006-01-02 15:04:05")
@@ -70,8 +67,9 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 		Pid:         strconv.Itoa(containerPID),
 		Command:     command,
 		CreatedTime: createTime,
-		Status:      container.RUNNING,
 		Name:        containerName,
+		Volumes:     volumes,
+		Status:      container.RUNNING,
 	}
 
 	jsonBytes, err := json.Marshal(containerInfo)
@@ -80,7 +78,7 @@ func recordContainerInfo(containerPID int, commandArray []string, containerName 
 		return "", err
 	}
 
-	dirUrl := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirUrl := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	if err := os.MkdirAll(dirUrl, 0622); err != nil {
 		logrus.Errorf("Mkdir error %s error %v", dirUrl, err)
 		return "", err
@@ -111,7 +109,7 @@ func randStringBytes(n int) string {
 }
 
 func deleteContainerInfo(containerName string) {
-	dirURL := fmt.Sprintf(container.DefaultInfoLocation, containerName)
+	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
 	if err := os.RemoveAll(dirURL); err != nil {
 		logrus.Errorf("Remove dir %s error %v", dirURL, err)
 	}

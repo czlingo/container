@@ -31,7 +31,7 @@ func NewWorkspace(volumes []string, containerName, imageName string) string {
 
 func createLowerDir(containerName, imageName string) string {
 	lowerDir := fmt.Sprintf(DefaultLowerPath, containerName)
-	if err := os.Mkdir(lowerDir, 0777); err != nil {
+	if err := os.MkdirAll(lowerDir, 0777); err != nil {
 		logrus.Errorf("Fail to create lower dir %s, error %v", lowerDir, err)
 	}
 	imageURI := filepath.Join(DefaultImageRepo, imageName)

@@ -16,12 +16,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, comArray []string, volumes []string, res *subsystems.ResourceConfig, containerName, imageName string) {
-	parent, writePipe := container.NewParentProcess(tty, containerName)
+func Run(tty bool, comArray, volumes, envSlice []string, res *subsystems.ResourceConfig, containerName, imageName string) {
+	parent, writePipe := container.NewParentProcess(tty, containerName, envSlice)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
 		return
 	}
+
 	// cd /
 	parent.Dir = fs.NewWorkspace(volumes, containerName, imageName)
 
@@ -41,8 +42,9 @@ func Run(tty bool, comArray []string, volumes []string, res *subsystems.Resource
 
 	sendInitCommand(comArray, writePipe)
 	if tty {
+		// maybe stop container, not remove
 		parent.Wait()
-		deleteContainerInfo(containerName)
+		// deleteContainerInfo(containerName)
 		fs.DestroyWorkspace(volumes, containerName)
 		cgroupManager.Destroy()
 	}
@@ -110,9 +112,9 @@ func randStringBytes(n int) string {
 	return string(b)
 }
 
-func deleteContainerInfo(containerName string) {
-	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
-	if err := os.RemoveAll(dirURL); err != nil {
-		logrus.Errorf("Remove dir %s error %v", dirURL, err)
-	}
-}
+// func deleteContainerInfo(containerName string) {
+// 	dirURL := fmt.Sprintf(fs.DefaultInfoLocation, containerName)
+// 	if err := os.RemoveAll(dirURL); err != nil {
+// 		logrus.Errorf("Remove dir %s error %v", dirURL, err)
+// 	}
+// }

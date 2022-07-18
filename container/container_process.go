@@ -10,7 +10,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func NewParentProcess(tty bool, containerName string) (*exec.Cmd, *os.File) {
+func NewParentProcess(tty bool, containerName string, envSlice []string) (*exec.Cmd, *os.File) {
 	readPipe, writePipe, err := NewPipe()
 	if err != nil {
 		log.Errorf("New pipe error %v", err)
@@ -42,6 +42,7 @@ func NewParentProcess(tty bool, containerName string) (*exec.Cmd, *os.File) {
 	}
 
 	cmd.ExtraFiles = []*os.File{readPipe}
+	cmd.Env = append(os.Environ(), envSlice...)
 	return cmd, writePipe
 }
 

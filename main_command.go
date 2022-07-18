@@ -37,6 +37,10 @@ var runCommand = cli.Command{
 			Name:  "name",
 			Usage: "container name",
 		},
+		cli.StringSliceFlag{
+			Name:  "e",
+			Usage: "set env",
+		},
 	},
 	Action: func(context *cli.Context) error {
 		if len(context.Args()) < 1 {
@@ -55,6 +59,7 @@ var runCommand = cli.Command{
 		volumes := context.StringSlice("v")
 		containerName := context.String("name")
 		memory := context.String("m")
+		envSlice := context.StringSlice("e")
 
 		if tty && detach {
 			return errors.New("it and d paramter can not both provided")
@@ -66,7 +71,7 @@ var runCommand = cli.Command{
 			// CpuShare:    context.String("cpushare"),
 		}
 
-		command.Run(tty, cmdArray, volumes, resConf, containerName, imageName)
+		command.Run(tty, cmdArray, volumes, envSlice, resConf, containerName, imageName)
 		return nil
 	},
 }

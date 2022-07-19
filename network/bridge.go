@@ -51,9 +51,13 @@ func (d *BridgeNetworkDriver) Connect(network *Network, endpoint *Endpoint) erro
 	}
 
 	la := netlink.NewLinkAttrs()
+	// 由于Linux接口名的限制, 取endpoint id的前5位
 	la.Name = endpoint.ID[:5]
+	// 通过设置Veth接口的master属性, 设置这个Veth的一端挂载到网络对应的Linux Bridge上
 	la.MasterIndex = br.Attrs().Index
 
+	// 创建Veth对象, 通过PeerName配置Veth另一端的接口名
+	// 配置Veth另一端的名字cif-{endpoint ID的前5位}
 	endpoint.Device = netlink.Veth{
 		LinkAttrs: la,
 		PeerName:  "cif-" + endpoint.ID[:5],
@@ -169,9 +173,7 @@ func setInterfaceIP(name string, rawIP string) error {
 	if err != nil {
 		return err
 	}
-	addr := &netlink.Addr{
-		IPNet: ipNet,
-	}
+	addr := &netlink.Addr{IPNet: ipNet, Peer: ipNet, Label: "", Flags: 0, Scope: 0, Broadcast: nil}
 	return netlink.AddrAdd(iface, addr)
 }
 

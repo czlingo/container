@@ -2,12 +2,12 @@ module czlingo/my-docker
 
 go 1.18
 
-require github.com/urfave/cli v1.22.9
-
 require (
-	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df // indirect
-	golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
+	github.com/urfave/cli v1.22.9
+	github.com/vishvananda/netns v0.0.0-20191106174202-0a2b9b5464df
 )
+
+require golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
 
 require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect

@@ -5,6 +5,7 @@ import (
 	"czlingo/my-docker/cgroups/subsystems"
 	"czlingo/my-docker/container"
 	"czlingo/my-docker/fs"
+	"czlingo/my-docker/network"
 	"encoding/json"
 	"fmt"
 	"math/rand"
@@ -14,9 +15,16 @@ import (
 	"time"
 
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
-func Run(tty bool, comArray, volumes, envSlice []string, res *subsystems.ResourceConfig, containerName, imageName string) {
+func Run(tty bool, comArray, volumes, envSlice []string, res *subsystems.ResourceConfig,
+	containerName, imageName string, nw string, portmapping []string) {
+	containerID := randStringBytes(10)
+	if containerName == "" {
+		containerName = containerID
+	}
+
 	parent, writePipe := container.NewParentProcess(tty, containerName, envSlice)
 	if parent == nil {
 		logrus.Errorf("New parent process error")
@@ -30,7 +38,7 @@ func Run(tty bool, comArray, volumes, envSlice []string, res *subsystems.Resourc
 		logrus.Error(err)
 	}
 
-	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, volumes, containerName)
+	containerName, err := recordContainerInfo(parent.Process.Pid, comArray, volumes, containerID, containerName)
 	if err != nil {
 		logrus.Errorf("Record container info error %v", err)
 		return
@@ -39,6 +47,21 @@ func Run(tty bool, comArray, volumes, envSlice []string, res *subsystems.Resourc
 	cgroupManager := cgroups.NewCgroupManager(containerName)
 	cgroupManager.Set(res)
 	cgroupManager.Apply(parent.Process.Pid)
+
+	if nw != "" {
+		// config container network
+		network.Init()
+		containerInfo := &container.ContainerInfo{
+			Id:          containerID,
+			Pid:         strconv.Itoa(parent.Process.Pid),
+			Name:        containerName,
+			PortMapping: portmapping,
+		}
+		if err := network.Connect(nw, containerInfo); err != nil {
+			log.Errorf("Error Connect Network %v", err)
+			return
+		}
+	}
 
 	sendInitCommand(comArray, writePipe)
 	if tty {
@@ -57,17 +80,12 @@ func sendInitCommand(comArray []string, writePipe *os.File) {
 	writePipe.Close()
 }
 
-func recordContainerInfo(containerPID int, commandArray, volumes []string, containerName string) (string, error) {
-	id := randStringBytes(10)
-
+func recordContainerInfo(containerPID int, commandArray, volumes []string, containerID, containerName string) (string, error) {
 	createTime := time.Now().Format("2006-01-02 15:04:05")
 	command := strings.Join(commandArray, "")
-	if containerName == "" {
-		containerName = id
-	}
 
 	containerInfo := &container.ContainerInfo{
-		Id:          id,
+		Id:          containerID,
 		Pid:         strconv.Itoa(containerPID),
 		Command:     command,
 		CreatedTime: createTime,

@@ -16,4 +16,5 @@ type ContainerInfo struct {
 	Status      string   `json:"status"`
 	Volumes     []string `json:"volumes"`
 	CreatedTime string   `json:"createdTime"`
+	PortMapping []string `json:"portmapping"` //端口映射
 }
